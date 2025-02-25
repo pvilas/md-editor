@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown Editor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .editor-container {
+            position: relative;
+            height: 300px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            resize: both;
+            overflow: hidden;
+        }
+        
+        .resize-handle {
+            position: absolute;
+            right: 0;
+            bottom: 0;
+            width: 20px;
+            height: 20px;
+            cursor: nwse-resize;
+            background: linear-gradient(135deg, transparent 50%, #ccc 50%, #ccc 100%);
+            z-index: 3;
+        }
+        
+        #editor, #highlight {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            padding: 10px;
+            margin: 0;
+            border: none;
+            overflow: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            box-sizing: border-box;
+            font-family: monospace;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        #editor {
+            color: transparent;
+            background: transparent;
+            caret-color: black;
+            z-index: 2;
+            resize: none;
+        }
+        
+        #highlight {
+            z-index: 1;
+            pointer-events: none;
+            background-color: white;
+        }
+        
+        /* Markdown highlighting styles */
+        .md-heading { color: #0066cc; font-weight: bold; }
+        .md-bold { color: #d33682; font-weight: bold; }
+        .md-italic { color: #2aa198; font-style: italic; }
+        .md-link { color: #268bd2; }
+        .md-code { color: #859900; background-color: #f8f8f8; }
+        .md-blockquote { color: #6c71c4; border-left: 3px solid #6c71c4; padding-left: 10px; }
+        .md-list { color: #cb4b16; }
+    </style>
+</head>
+<body>
+    <h1>Markdown Editor</h1>
+    <p>Type markdown in the editor below to see it highlighted. Drag the bottom-right corner to resize.</p>
+    
+    <div class="editor-container">
+        <textarea id="editor" spellcheck="false" placeholder="Type markdown here..."></textarea>
+        <div id="highlight"></div>
+        <div class="resize-handle" id="resize-handle"></div>
+    </div>
+    
+    <div style="margin-top: 15px;">
+        <button id="copy-markdown">Copy Markdown</button>
+        <button id="show-markdown">Show Markdown</button>
+        <pre id="markdown-output" style="display: none; background: #f5f5f5; padding: 10px; border: 1px solid #ddd; margin-top: 10px;"></pre>
+    </div>
+    
+    <script>
+        const editor = document.getElementById('editor');
+        const highlight = document.getElementById('highlight');
+        const container = document.querySelector('.editor-container');
+        const resizeHandle = document.getElementById('resize-handle');
+        const copyButton = document.getElementById('copy-markdown');
+        const showButton = document.getElementById('show-markdown');
+        const markdownOutput = document.getElementById('markdown-output');
+        
+        // Copy markdown to clipboard
+        copyButton.addEventListener('click', () => {
+            navigator.clipboard.writeText(editor.value)
+                .then(() => {
+                    alert('Markdown copied to clipboard!');
+                })
+                .catch(err => {
+                    console.error('Failed to copy: ', err);
+                    alert('Failed to copy to clipboard');
+                });
+        });
+        
+        // Show/hide markdown
+        showButton.addEventListener('click', () => {
+            if (markdownOutput.style.display === 'none') {
+                markdownOutput.textContent = editor.value;
+                markdownOutput.style.display = 'block';
+                showButton.textContent = 'Hide Markdown';
+            } else {
+                markdownOutput.style.display = 'none';
+                showButton.textContent = 'Show Markdown';
+            }
+        });
+        
+        // Sync scrolling between textarea and highlight div
+        editor.addEventListener('scroll', () => {
+            highlight.scrollTop = editor.scrollTop;
+            highlight.scrollLeft = editor.scrollLeft;
+        });
+        
+        // Update highlighting when text changes
+        editor.addEventListener('input', updateHighlighting);
+        
+        // Initial highlighting
+        updateHighlighting();
+        
+        // Custom resize functionality
+        let isResizing = false;
+        let lastX, lastY;
+        
+        resizeHandle.addEventListener('mousedown', (e) => {
+            isResizing = true;
+            lastX = e.clientX;
+            lastY = e.clientY;
+            e.preventDefault();
+        });
+        
+        document.addEventListener('mousemove', (e) => {
+            if (!isResizing) return;
+            
+            const deltaX = e.clientX - lastX;
+            const deltaY = e.clientY - lastY;
+            
+            const newWidth = container.offsetWidth + deltaX;
+            const newHeight = container.offsetHeight + deltaY;
+            
+            container.style.width = newWidth + 'px';
+            container.style.height = newHeight + 'px';
+            
+            lastX = e.clientX;
+            lastY = e.clientY;
+        });
+        
+        document.addEventListener('mouseup', () => {
+            isResizing = false;
+        });
+        
+        function updateHighlighting() {
+            let text = editor.value;
+            
+            // Escape HTML to prevent XSS
+            text = text.replace(/&/g, '&amp;')
+                       .replace(/</g, '&lt;')
+                       .replace(/>/g, '&gt;');
+            
+            // Process the text line by line to avoid cross-line matching issues
+            const lines = text.split('\n');
+            const processedLines = lines.map(line => {
+                // Headers
+                if (line.match(/^#{1,6}\s+/)) {
+                    return line.replace(/^(#{1,6})\s+(.*?)$/, '<span class="md-heading">$1 $2</span>');
+                }
+                // Block quotes
+                else if (line.match(/^&gt;\s+/)) {
+                    return line.replace(/^(&gt;)\s+(.*?)$/, '<span class="md-blockquote">$1 $2</span>');
+                }
+                // Lists
+                else if (line.match(/^\s*[-*+]\s+/) || line.match(/^\s*\d+\.\s+/)) {
+                    return line.replace(/^(\s*[-*+]|\s*\d+\.)\s+(.*)$/, '<span class="md-list">$1 $2</span>');
+                }
+                // Regular line - process inline formatting
+                else {
+                    return line
+                        // Bold
+                        .replace(/\*\*([^\*]+)\*\*/g, '<span class="md-bold">**$1**</span>')
+                        .replace(/__([^_]+)__/g, '<span class="md-bold">__$1__</span>')
+                        // Italic
+                        .replace(/\*([^\*]+)\*/g, '<span class="md-italic">*$1*</span>')
+                        .replace(/_([^_]+)_/g, '<span class="md-italic">_$1_</span>')
+                        // Links
+                        .replace(/\[(.*?)\]\((.*?)\)/g, '<span class="md-link">[$1]($2)</span>')
+                        // Inline code
+                        .replace(/`([^`]+)`/g, '<span class="md-code">`$1`</span>');
+                }
+            });
+            
+            // Update the highlight div
+            highlight.innerHTML = processedLines.join('\n');
+        }
+    </script>
+</body>
+</html>
