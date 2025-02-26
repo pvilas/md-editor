@@ -1,0 +1,16 @@
+/* Markdown highlighting styles */
+
+.md-heading { color: #0066cc; font-weight: bold; }
+.md-bold { color: #d33682; font-weight: bold; }
+.md-italic { color: #2aa198; font-style: italic; }
+.md-link { color: #268bd2; }
+.md-code { color: #859900; background-color: #f8f8f8; }
+.md-blockquote { color: #6c71c4; border-left: 3px solid #6c71c4; padding-left: 10px; }
+.md-list { color: #cb4b16; }
+.md-code-block { font-family: monospace; color: #859900; background-color: #f8f8f8; }
+.md-image { color: #2aa198; }
+.md-horizontal-rule { color: #0066cc; }
+.md-table { color: #cb4b16; }
+.md-table-row { color: #cb4b16; }
+
+

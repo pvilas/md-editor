@@ -4,6 +4,7 @@ Markdown es un lenguaje de marcado ligero que permite formatear texto de manera 
 
 ---
 
+
 ## 1. Encabezados
 
 Se pueden crear encabezados utilizando el símbolo `#` seguido de un espacio:
@@ -20,6 +21,7 @@ Se pueden crear encabezados utilizando el símbolo `#` seguido de un espacio:
 ### Ejemplo:
 
 # Encabezado 1
+
 ## Encabezado 2
 ### Encabezado 3
 #### Encabezado 4
